@@ -3,10 +3,10 @@
 #include <Adafruit_SSD1306.h>
 #include <avr/sleep.h>
 #include <avr/power.h>
-#include "./images.h"
-#include "./button.cpp"
-#include <TrueRandom.h>
-#include "./Op.h"
+#include "MainMenu.h"
+#include "button.cpp"
+#include "StandardUI.h"
+#include "AdvancedUI.h"
 
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
 #define SCREEN_HEIGHT 64  // OLED display height, in pixels
@@ -18,170 +18,27 @@
 #define cbi(by, bi) (by &= ~(1 << bi))
 #define sbi(by, bi) (by |= (1 << bi))
 
-#define DICE_COUNT 6
-#define MAX_COUNT_PER_DICE 5
-#define INIT_DICE_COUNT 0
+#define ROTARY_A 2
+#define ROTARY_B 3
 
-#define BUTTON_DIE 2
-#define BUTTON_PLUS 4
-#define BUTTON_MINUS 5
-#define BUTTON_ROLL 6
+#define BUTTON_1 4
+#define BUTTON_UP 5
+#define BUTTON_DOWN 6
+#define BUTTON_2 7
 #define OLED_VCC 13
 
 #define SLEEP_TIME 20000
 
-enum Screen {
-    DICE,
-    ROLLS,
-    SUM
-};
-
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-Button diceButton(BUTTON_DIE);
-Button plusButton(BUTTON_PLUS);
-Button minusButton(BUTTON_MINUS);
-Button rollButton(BUTTON_ROLL);
+UI *currentUI;
 
-int curr_die = 0;
-uint8_t dice_value[DICE_COUNT] = {4, 6, 8, 10, 12, 20};
-uint8_t dice_count[DICE_COUNT] = {INIT_DICE_COUNT};
-uint8_t dice_results[DICE_COUNT][MAX_COUNT_PER_DICE];
-uint16_t sum = 0;
-volatile uint32_t last_interaction_time = 0;
+Button leftButton(BUTTON_1);
+Button upButton(BUTTON_UP);
+Button downButton(BUTTON_DOWN);
+Button rightButton(BUTTON_2);
 
-Screen screen = DICE;
-
-void rotate() {
-    curr_die = (curr_die + 1) % DICE_COUNT;
-    screen = DICE;
-    last_interaction_time = millis();
-}
-
-void reset() {
-    curr_die = 0;
-    for (int i = 0; i < MAX_COUNT_PER_DICE; i++) {
-        dice_count[i] = INIT_DICE_COUNT;
-    }
-    screen = DICE;
-    last_interaction_time = millis();
-}
-
-void inc() {
-    dice_count[curr_die] = min(dice_count[curr_die] + 1, MAX_COUNT_PER_DICE);
-    screen = DICE;
-    last_interaction_time = millis();
-}
-
-void dec() {
-    dice_count[curr_die] = max(dice_count[curr_die] - 1, 0);
-    screen = DICE;
-    last_interaction_time = millis();
-}
-
-void roll() {
-    if (screen != SUM) {
-        sum = 0;
-        for (uint8_t i = 0; i < DICE_COUNT; i++) {
-            for (uint8_t j = 0; j < MAX_COUNT_PER_DICE; j++) {
-                dice_results[i][j] = 0;
-            }
-        }
-
-        for (uint8_t i = 0; i < DICE_COUNT; i++) {
-            for (uint8_t j = 0; j < dice_count
-            [i]; j++) {
-                dice_results[i][j] = TrueRandom.random(1, dice_value[i] + 1);
-                sum += dice_results[i][j];
-            }
-        }
-    }
-    screen = ROLLS;
-    last_interaction_time = millis();
-}
-
-void showSum() {
-    if (screen == ROLLS) {
-        screen = SUM;
-    } else {
-        screen = ROLLS;
-    }
-    last_interaction_time = millis();
-}
-
-void wake() {
-    last_interaction_time = millis();
-}
-
-
-int rotateNumber(int input, int max) {
-    if (input >= 0 && input < max) {
-        return input;
-    } else if (input < 0) {
-        return max + input; // Rotates the negative number within the range
-    } else {
-        return input % max; // Rotates the number back into the range for inputs >= max
-    }
-}
-
-void splash() {
-    display.clearDisplay();
-    display.drawBitmap(0, 0, image_d20, IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
-    display.display();
-    delay(1000);
-}
-
-void render() {
-    char buffer[10];
-    if (screen == DICE) {
-        display.clearDisplay();
-        display.drawBitmap(-4, 20, icon_allArray[rotateNumber(curr_die - 2, DICE_COUNT)], ICON_WIDTH, ICON_HEIGHT,
-                           WHITE);
-        display.drawBitmap(22, 10, icon_allArray[rotateNumber(curr_die - 1, DICE_COUNT)], ICON_WIDTH, ICON_HEIGHT,
-                           WHITE);
-        display.drawBitmap(48, 5, image_allArray[curr_die], IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
-        display.drawBitmap(86, 10, icon_allArray[rotateNumber(curr_die + 1, DICE_COUNT)], ICON_WIDTH, ICON_HEIGHT,
-                           WHITE);
-        display.drawBitmap(112, 20, icon_allArray[rotateNumber(curr_die + 2, DICE_COUNT)], ICON_WIDTH, ICON_HEIGHT,
-                           WHITE);
-        display.setTextSize(2);
-        display.setTextColor(WHITE);
-        display.setCursor(40, 45);
-        sprintf(buffer, "%dxd%d", dice_count[curr_die], dice_value[curr_die]);
-        display.write(buffer);
-        display.fillRoundRect(0, 0, 128, 64, 4, SSD1306_INVERSE);
-        display.display();
-    } else if (screen == ROLLS) {
-        display.clearDisplay();
-        display.setTextSize(1);
-        for (uint8_t i = 0; i < DICE_COUNT; i++) {
-            sprintf(buffer, "d%d", dice_value[i]);
-            display.setCursor(0, 4 + i * 10);
-            display.write(buffer);
-            for (uint8_t j = 0; j < MAX_COUNT_PER_DICE; j++) {
-                if (dice_results[i][j] > 0) {
-                    sprintf(buffer, "%d", dice_results[i][j]);
-                } else {
-                    sprintf(buffer, "*");
-                }
-                display.setCursor(32 + j * 20, 4 + i * 10);
-                display.write(buffer);
-            }
-        }
-        display.fillRoundRect(20, 0, display.width() - 20, display.height(), 4, SSD1306_INVERSE);
-        display.display();
-    } else if (screen == SUM) {
-        display.clearDisplay();
-        display.setTextSize(2);
-        display.setTextColor(SSD1306_WHITE);
-        display.setCursor(35, 10);
-        display.write("Total");
-        display.setCursor(45, 35);
-        sprintf(buffer, "%03d", sum);
-        display.write(buffer);
-        display.display();
-    }
-}
+volatile uint32_t lastInteractionTime = 0;
 
 void setupDisplay() {
     delay(500);
@@ -197,7 +54,6 @@ void setupDisplay() {
 void sleep() {
     digitalWrite(OLED_VCC, LOW);
     delay(500);
-    attachInterrupt(0, wake, CHANGE);
     sleep_enable(); // Enable sleep mode
     power_adc_disable(); // Disable ADC to save power
     sei(); // Enable interrupts
@@ -210,46 +66,150 @@ void sleep() {
     setupDisplay();
 }
 
+void onButtonLeftPress() {
+    currentUI->left(false);
+}
+
+void onButtonLeftLongPress() {
+    currentUI->left(true);
+    if (currentUI->type != MAIN_MENU) {
+        delete currentUI;
+        currentUI = new MainMenu();
+    }
+}
+
+void onButtonUpPress() {
+    currentUI->up(false);
+}
+
+void onButtonUpLongPress() {
+    currentUI->up(true);
+}
+
+void onButtonDownPress() {
+    currentUI->down(false);
+}
+
+void onButtonDownLongPress() {
+    currentUI->down(true);
+}
+
+void onButtonRightPress() {
+    currentUI->right(false);
+    if (currentUI->type == MAIN_MENU) {
+        if (currentUI->pos() == 0) {
+            delete currentUI;
+            currentUI = new StandardUI();
+        } else if (currentUI->pos() == 1) {
+            delete currentUI;
+            currentUI = new AdvancedUI();
+        } else if (currentUI->pos() == 2) {
+        }
+    }
+}
+
+void onButtonRightLongPress() {
+    currentUI->right(true);
+}
+
+void onEncoderCW() {
+    currentUI->right(false);
+}
+
+void onEncoderCCW() {
+    currentUI->left(false);
+}
+
+void encoderISR() {
+    static const int8_t encStates[] PROGMEM = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
+    static volatile uint8_t lastAb = 3;
+    static volatile int8_t encVal = 0;
+    static volatile uint32_t lastInterruptTime = 0;
+
+    uint32_t interruptTime = millis();
+
+    lastAb <<= 2; // Remember previous state
+    uint8_t a = digitalRead(ROTARY_A);
+    uint8_t b = digitalRead(ROTARY_B);
+    lastAb |= (a << 1) | b; // Add current state
+    encVal += encStates[(lastAb & 0x0f)];
+    if (encVal > 3 || encVal < -3) {
+        int8_t changeValue = (encVal > 0) - (encVal < 0);
+        if (millis() - lastInterruptTime < 10) {
+            changeValue *= 10;
+        }
+        lastInterruptTime = millis();
+        //encoderPos += changeValue;
+        if (changeValue > 0) {
+            onEncoderCW();
+        } else {
+            onEncoderCCW();
+        }
+        encVal = 0;
+    }
+
+    lastInteractionTime = interruptTime;
+}
+
+ISR(PCINT2_vect) {
+    // This ISR will be executed when pin D2 changes state
+    // Note: The ISR is required to allow wake-up from sleep, but doesn't need to do anything.
+    lastInteractionTime = millis();
+}
+
 void setup() {
     // put your setup code here, to run once:
+    Serial.begin(9600);
     pinMode(OLED_VCC, OUTPUT);
     digitalWrite(OLED_VCC, HIGH);
 
     setupDisplay();
 
-    diceButton.onPress(rotate);
-    diceButton.onLongPress(reset);
-    diceButton.begin();
+    PCICR |= (1 << PCIE2);  // Enable PCINT2 (covers D0 to D7, including D2)
 
-    plusButton.onPress(inc);
-    plusButton.begin();
+    PCMSK2 |= (1 << PCINT20);
+    leftButton.onPress(onButtonLeftPress);
+    leftButton.onLongPress(onButtonLeftLongPress);
+    leftButton.begin();
 
-    minusButton.onPress(dec);
-    minusButton.begin();
+    PCMSK2 |= (1 << PCINT21);
+    upButton.onPress(onButtonUpPress);
+    upButton.onLongPress(onButtonUpLongPress);
+    upButton.begin();
 
-    rollButton.onPress(roll);
-    rollButton.onLongPress(showSum);
-    rollButton.begin();
+    PCMSK2 |= (1 << PCINT22);
+    downButton.onPress(onButtonDownPress);
+    downButton.onLongPress(onButtonDownLongPress);
+    downButton.begin();
+
+    PCMSK2 |= (1 << PCINT23);
+    rightButton.onPress(onButtonRightPress);
+    rightButton.onLongPress(onButtonRightLongPress);
+    rightButton.begin();
+
+
+    pinMode(ROTARY_A, INPUT_PULLUP);
+    pinMode(ROTARY_B, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(ROTARY_A), encoderISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ROTARY_B), encoderISR, CHANGE);
 
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 
-    splash();
+    currentUI = new MainMenu();
 }
 
-uint32_t last_rendered_time = 0;
-
 void loop() {
-    if (last_rendered_time + 30 < millis()) {
-        render();
-        last_rendered_time = millis();
+
+    if (currentUI) {
+        currentUI->render(&display);
     }
 
-    diceButton.read();
-    plusButton.read();
-    minusButton.read();
-    rollButton.read();
+    leftButton.read();
+    upButton.read();
+    downButton.read();
+    rightButton.read();
 
-    if (last_interaction_time + SLEEP_TIME < millis()) {
+    if (lastInteractionTime + SLEEP_TIME < millis()) {
         sleep();
     }
 }

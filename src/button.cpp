@@ -1,8 +1,10 @@
+#ifndef BUTTON_H
+#define BUTTON_H
 #include <Arduino.h>
 
 class Button {
   uint8_t _pin;
-  uint32_t _debounce_time;
+  uint16_t _debounce_time;
   uint32_t _long_press_time;
   uint32_t _last_time;
   bool _last_status;
@@ -11,12 +13,12 @@ class Button {
   void (*_on_press)();
   void (*_on_long_press)();
 
-  bool _readPin() {
+  bool _readPin() const {
     return digitalRead(_pin) == LOW;
   }
 
 public:
-  Button(uint8_t pin, uint32_t debounce = 100, uint32_t long_press_time = 2000) {
+  Button(uint8_t pin, uint16_t debounce = 100, uint32_t long_press_time = 2000) {
     _pin = pin;
     _debounce_time = debounce;
     _long_press_time = long_press_time;
@@ -71,3 +73,5 @@ public:
     }
   }
 };
+
+#endif //BUTTON_H
