@@ -7,6 +7,7 @@
 #include "button.cpp"
 #include "StandardUI.h"
 #include "AdvancedUI.h"
+#include <MemoryUsage.h>
 
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
 #define SCREEN_HEIGHT 64  // OLED display height, in pixels
@@ -160,6 +161,15 @@ ISR(PCINT2_vect) {
 void setup() {
     // put your setup code here, to run once:
     Serial.begin(9600);
+
+    MEMORY_PRINT_START
+    MEMORY_PRINT_HEAPSTART
+    MEMORY_PRINT_HEAPEND
+    MEMORY_PRINT_STACKSTART
+    MEMORY_PRINT_END
+    MEMORY_PRINT_HEAPSIZE
+    FREERAM_PRINT
+
     pinMode(OLED_VCC, OUTPUT);
     digitalWrite(OLED_VCC, HIGH);
 
@@ -212,4 +222,5 @@ void loop() {
     if (lastInteractionTime + SLEEP_TIME < millis()) {
         sleep();
     }
+    FREERAM_PRINT;
 }

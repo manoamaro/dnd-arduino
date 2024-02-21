@@ -13,6 +13,12 @@
 #define _max(a, b) ((a)>(b)?(a):(b))
 #define _constrain(amt, low, high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
+namespace utils
+{
+    
+} // namespace utils
+
+
 namespace Dice {
     uint8_t sideOf(uint8_t index);
     uint8_t roll(uint8_t minimum, uint8_t sides, uint32_t seed);

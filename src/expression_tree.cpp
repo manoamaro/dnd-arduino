@@ -2,7 +2,7 @@
 // Created by Manoel Amaro on 03.02.24.
 //
 
-#include "ExpressionTree.h"
+#include "expression_tree.h"
 
 ExpressionTree::ExpressionTree() : root(nullptr) {}
 
@@ -36,9 +36,16 @@ void ExpressionTree::addNode(MathOp *newNode)  {
 }
 
 
-int ExpressionTree::evaluateExpression() {
-    if (!root) {
-        return 0;
-    }
-    return root->apply();
+void ExpressionTree::evaluateExpression(OpResult *result) {
+    result->clearDetails();
+    result->setResult(0);
+    result->clearFlag(OP_RESULT_FLAG_CRITICAL_SUCCESS);
+    result->clearFlag(OP_RESULT_FLAG_CRITICAL_FAILURE);    
+    root->apply(result);
+    delete root;
+}
+
+void ExpressionTree::reset() {
+    delete root;
+    root = nullptr;
 }

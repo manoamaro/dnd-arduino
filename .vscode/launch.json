@@ -9,6 +9,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "(lldb) Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/.pio/build/native/program",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        },
+        {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",

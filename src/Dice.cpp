@@ -2,7 +2,7 @@
 // Created by Manoel Amaro on 03.02.24.
 //
 
-#include "Dice.h"
+#include "dice.h"
 #include <stdlib.h>
 
 namespace Dice {
