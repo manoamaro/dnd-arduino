@@ -30,7 +30,7 @@ public:
 };
 
 
-#define OP_RESULT_MAX_DETAILS 30
+#define OP_RESULT_MAX_DETAILS 1
 class OpResult
 {
 private:

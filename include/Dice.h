@@ -8,6 +8,9 @@
 #define DICE_COUNT 6
 
 #include <inttypes.h>
+#include <WString.h>
+#include "lcdgfx.h"
+
 
 #define _min(a, b) ((a)<(b)?(a):(b))
 #define _max(a, b) ((a)>(b)?(a):(b))
@@ -15,7 +18,7 @@
 
 namespace utils
 {
-    
+    size_t print(DisplaySSD1306_128x64_I2C *display, const __FlashStringHelper *ifsh);
 } // namespace utils
 
 

@@ -5,7 +5,6 @@
 #ifndef DND_MAINMENU_H
 #define DND_MAINMENU_H
 
-#include "Adafruit_SSD1306.h"
 #include "UI.h"
 
 class MainMenu: public UI {
@@ -13,7 +12,7 @@ private:
     uint8_t _curr = 0;
 public:
     explicit MainMenu();
-    void render(Adafruit_SSD1306 *display) override;
+    void render(DisplaySSD1306_128x64_I2C *display) override;
     void up(bool longPress) override;
     void down(bool longPress) override;
     void left(bool longPress) override;

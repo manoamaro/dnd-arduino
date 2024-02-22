@@ -5,17 +5,15 @@
 #ifndef DND_EXPRESSIONTREE_H
 #define DND_EXPRESSIONTREE_H
 
-#include "op.h"
-#include "math_op.h"
+#include "op2.h"
 
 
 class ExpressionTree {
 public:
-    Op* root;
+    op::Op2* root;
     ExpressionTree();
     ~ExpressionTree();
-    void addNode(Op *newNode);
-    void addNode(MathOp *newNode);
+    void addNode(op::Op2 *newNode);
     void evaluateExpression(OpResult *result);
     void reset();
 };

@@ -5,8 +5,9 @@
 #ifndef DND_UI_H
 #define DND_UI_H
 
+#include "lcdgfx.h"
 #include <inttypes.h>
-#include <Adafruit_SSD1306.h>
+
 
 enum UI_TYPE {
     MAIN_MENU,
@@ -21,7 +22,7 @@ public:
 
     explicit UI(UI_TYPE type);
 
-    virtual void render(Adafruit_SSD1306 *display) = 0;
+    virtual void render(DisplaySSD1306_128x64_I2C *display) = 0;
     virtual void up(bool longPress) = 0;
     virtual void down(bool longPress) = 0;
     virtual void left(bool longPress) = 0;

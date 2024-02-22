@@ -1,12 +1,12 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_SSD1306.h>
+#include "lcdgfx.h"
 #include <avr/sleep.h>
 #include <avr/power.h>
 #include "MainMenu.h"
-#include "button.cpp"
 #include "StandardUI.h"
-#include "AdvancedUI.h"
+#include "advanced_ui.h"
+#include "button.cpp"
 #include <MemoryUsage.h>
 
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
@@ -30,9 +30,12 @@
 
 #define SLEEP_TIME 20000
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+DisplaySSD1306_128x64_I2C display(-1); // or (-1,{busId, addr, scl, sda, frequency})
 
-UI *currentUI;
+UI_TYPE currScreen = MAIN_MENU;
+MainMenu mainMenu;
+StandardUI standardUI;
+AdvancedUI advancedUI;
 
 Button leftButton(BUTTON_1);
 Button upButton(BUTTON_UP);
@@ -43,13 +46,11 @@ volatile uint32_t lastInteractionTime = 0;
 
 void setupDisplay() {
     delay(500);
-    if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-        for (;;);  // Don't proceed, loop forever
-    }
-
-    display.setTextColor(WHITE);
-    display.clearDisplay();
-    display.display();
+    display.begin();
+    display.fill(0x00);
+    display.setFixedFont(ssd1306xled_font6x8);
+    display.printFixed(0, 8, "Snake", STYLE_NORMAL);
+    lcd_delay(1000);
 }
 
 void sleep() {
@@ -67,58 +68,70 @@ void sleep() {
     setupDisplay();
 }
 
+UI *currentUI() {
+    switch (currScreen) {
+        case MAIN_MENU:
+            return &mainMenu;
+        case STANDARD:
+            return &standardUI;
+        case ADVANCED:
+            return &advancedUI;
+        case HISTORY:
+            break;
+    }
+    return nullptr;
+}
+
 void onButtonLeftPress() {
-    currentUI->left(false);
+    currentUI()->left(false);
 }
 
 void onButtonLeftLongPress() {
-    currentUI->left(true);
-    if (currentUI->type != MAIN_MENU) {
-        delete currentUI;
-        currentUI = new MainMenu();
+    currentUI()->left(true);
+    if (currScreen != MAIN_MENU) {
+        currScreen = MAIN_MENU;
     }
 }
 
 void onButtonUpPress() {
-    currentUI->up(false);
+    currentUI()->up(false);
 }
 
 void onButtonUpLongPress() {
-    currentUI->up(true);
+    currentUI()->up(true);
 }
 
 void onButtonDownPress() {
-    currentUI->down(false);
+    currentUI()->down(false);
 }
 
 void onButtonDownLongPress() {
-    currentUI->down(true);
+    currentUI()->down(true);
 }
 
 void onButtonRightPress() {
-    currentUI->right(false);
-    if (currentUI->type == MAIN_MENU) {
-        if (currentUI->pos() == 0) {
-            delete currentUI;
-            currentUI = new StandardUI();
-        } else if (currentUI->pos() == 1) {
-            delete currentUI;
-            currentUI = new AdvancedUI();
-        } else if (currentUI->pos() == 2) {
+    currentUI()->right(false);
+    if (currScreen == MAIN_MENU) {
+        if (currentUI()->pos() == 0) {
+            currScreen = STANDARD;
+        } else if (currentUI()->pos() == 1) {
+            currScreen = ADVANCED;
+        } else if (currentUI()->pos() == 2) {
+            currScreen = HISTORY;
         }
     }
 }
 
 void onButtonRightLongPress() {
-    currentUI->right(true);
+    currentUI()->right(true);
 }
 
 void onEncoderCW() {
-    currentUI->right(false);
+    currentUI()->right(false);
 }
 
 void onEncoderCCW() {
-    currentUI->left(false);
+    currentUI()->left(false);
 }
 
 void encoderISR() {
@@ -204,14 +217,12 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(ROTARY_B), encoderISR, CHANGE);
 
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-
-    currentUI = new MainMenu();
 }
 
 void loop() {
 
-    if (currentUI) {
-        currentUI->render(&display);
+    if (currentUI()) {
+        currentUI()->render(&display);
     }
 
     leftButton.read();

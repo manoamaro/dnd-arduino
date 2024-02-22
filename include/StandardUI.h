@@ -6,8 +6,7 @@
 #define DND_STANDARDUI_H
 
 #include "UI.h"
-#include "Dice.h"
-#include "Adafruit_SSD1306.h"
+#include "dice.h"
 
 #define MAX_COUNT_PER_DICE 5
 #define INIT_DICE_COUNT 0
@@ -22,7 +21,7 @@ private:
     bool _show_rolls = false;
 public:
     explicit StandardUI();
-    void render(Adafruit_SSD1306 *display) override;
+    void render(DisplaySSD1306_128x64_I2C *display) override;
     void up(bool longPress) override;
     void down(bool longPress) override;
     void left(bool longPress) override;

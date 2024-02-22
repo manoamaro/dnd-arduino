@@ -5,12 +5,9 @@
 #ifndef DND_ADVANCEDUI_H
 #define DND_ADVANCEDUI_H
 
-#include "Adafruit_SSD1306.h"
-#include "op_result.h"
-#include "const_op.h"
-#include "roll_op.h"
-#include "math_op.h"
 #include "expression_tree.h"
+#include "op_result.h"
+#include "op2.h"
 #include "UI.h"
 
 enum UiState
@@ -35,22 +32,20 @@ enum UIOpType
 class AdvancedUI : public UI
 {
 private:
-    UiState state = UI_CONST_DICE_STATE;
-    UIOpType uiOpType = UI_OP_CONST;
+    uint8_t state = UI_CONST_DICE_STATE;
+    uint8_t uiOpType = UI_OP_CONST;
     ExpressionTree expressionTree;
-    ConstOp *currConstOp = nullptr;
-    RollOp *currRollOp = nullptr;
-    MathOp *currMathOp = nullptr;
+    op::Op2 *currOp = nullptr;
     OpResult result;
 
-    void printOp(Op *op, Adafruit_SSD1306 *display, uint8_t depth);
-    void printDetails(OpResultDetail *detail, Adafruit_SSD1306 *display);
+    void printOp(op::Op2 *op, DisplaySSD1306_128x64_I2C *display, uint8_t depth);
+    void printDetails(OpResultDetail *detail, DisplaySSD1306_128x64_I2C *display);
 
 public:
     explicit AdvancedUI();
     ~AdvancedUI() override;
 
-    void render(Adafruit_SSD1306 *display) override;
+    void render(DisplaySSD1306_128x64_I2C *display) override;
     void up(bool longPress) override;
     void down(bool longPress) override;
     void left(bool longPress) override;

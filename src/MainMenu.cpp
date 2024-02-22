@@ -3,33 +3,23 @@
 //
 
 #include "MainMenu.h"
-#include <Fonts/FreeSerif9pt7b.h>
 #include "images.h"
-#include <Adafruit_SSD1306.h>
 
 MainMenu::MainMenu() : UI(MAIN_MENU) {}
 
-void MainMenu::render(Adafruit_SSD1306 *display) {
-    display->clearDisplay();
-    display->setFont(&FreeSerif9pt7b);
-    display->setTextSize(1);
-    display->setCursor(22, 13);
-    display->print(F("Dice Roller"));
-    display->drawFastHLine(0, 15, 128, SSD1306_WHITE);
-    display->setFont();
-    display->setCursor(40, 24);
-    display->print(F("Standard"));
-    display->setCursor(40, 38);
-    display->print(F("Advanced"));
-    display->setCursor(44, 52);
-    display->print(F("History"));
+void MainMenu::render(DisplaySSD1306_128x64_I2C *display) {
+    display->clear();
+    //display->setFont(&FreeSerif9pt7b);
+    display->printFixed(22, 13, "Dice Roller", STYLE_NORMAL);
+    display->drawHLine(0, 15, 128);
+    display->printFixed(40, 24, "Standard", STYLE_NORMAL);
+    display->printFixed(40, 38, "Advanced", STYLE_NORMAL);
+    display->printFixed(44, 52, "History", STYLE_NORMAL);
 
-    display->drawRoundRect(34, 20 + (_curr * 14), 60, 16, 4, SSD1306_WHITE);
+    display->drawRect(34, 20 + (_curr * 14), 60, 16);
 
-    display->drawBitmap(0, 23, image_allArray[_curr], IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
-    display->drawBitmap(96, 23, image_allArray[5 - _curr], IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
-
-    display->display();
+    display->drawBitmap1(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT, image_allArray[0]);
+    display->drawBitmap1(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT, image_allArray[5-_curr]);
 }
 
 void MainMenu::up(bool longPress) {

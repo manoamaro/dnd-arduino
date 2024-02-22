@@ -19,40 +19,35 @@ static int rotateNumber(int input, int max) {
 StandardUI::StandardUI() : UI(STANDARD) {
 }
 
-void StandardUI::render(Adafruit_SSD1306 *display) {
+void StandardUI::render(DisplaySSD1306_128x64_I2C *display) {
     if (!_show_rolls) {
-        display->clearDisplay();
-        display->drawBitmap(-4, 20, icon_allArray[rotateNumber(_curr_die - 2, DICE_COUNT)], ICON_WIDTH, ICON_HEIGHT,WHITE);
-        display->drawBitmap(22, 10, icon_allArray[rotateNumber(_curr_die - 1, DICE_COUNT)], ICON_WIDTH, ICON_HEIGHT,WHITE);
-        display->drawBitmap(48, 5, image_allArray[_curr_die], IMAGE_WIDTH, IMAGE_HEIGHT, WHITE);
-        display->drawBitmap(86, 10, icon_allArray[rotateNumber(_curr_die + 1, DICE_COUNT)], ICON_WIDTH, ICON_HEIGHT,WHITE);
-        display->drawBitmap(112, 20, icon_allArray[rotateNumber(_curr_die + 2, DICE_COUNT)], ICON_WIDTH, ICON_HEIGHT,WHITE);
-        display->setTextSize(2);
-        display->setTextColor(WHITE);
-        display->setCursor(40, 45);
+        display->clear();
+        display->drawBitmap1(-4, 20, ICON_WIDTH, ICON_HEIGHT, icon_allArray[rotateNumber(_curr_die - 2, DICE_COUNT)]);
+        display->drawBitmap1(22, 10, ICON_WIDTH, ICON_HEIGHT, icon_allArray[rotateNumber(_curr_die - 1, DICE_COUNT)]);
+        display->drawBitmap1(48, 5, ICON_WIDTH, ICON_HEIGHT, image_allArray[_curr_die]);
+        display->drawBitmap1(86, 10, ICON_WIDTH, ICON_HEIGHT, icon_allArray[rotateNumber(_curr_die + 1, DICE_COUNT)]);
+        display->drawBitmap1(112, 20, ICON_WIDTH, ICON_HEIGHT, icon_allArray[rotateNumber(_curr_die + 2, DICE_COUNT)]);
+        display->setTextCursor(40, 45);
         display->print(_dice_count[_curr_die]);
-        display->print(F("d"));
+        utils::print(display, F("d"));
         display->print(Dice::sideOf(_curr_die));
-        display->fillRoundRect(0, 0, 128, 64, 4, SSD1306_INVERSE);
-        display->display();
+        display->drawRect(0, 0, 128, 64);
     } else {
-        display->clearDisplay();
-        display->setTextSize(1);
+        display->clear();
         for (uint8_t i = 0; i < DICE_COUNT; i++) {
-            display->setCursor(0, 4 + i * 10);
-            display->print(F("d"));
+            display->setTextCursor(0, 4 + i * 10);
+            utils::print(display, F("d"));
             display->print(Dice::sideOf(i));
             for (uint8_t j = 0; j < MAX_COUNT_PER_DICE; j++) {
-                display->setCursor(32 + j * 20, 4 + i * 10);
+                display->setTextCursor(32 + j * 20, 4 + i * 10);
                 if (_dice_results[i][j] > 0) {
                     display->print(_dice_results[i][j]);
                 } else {
-                    display->print(F("*"));
+                    utils::print(display, F("*"));
                 }
             }
         }
-        display->fillRoundRect(20, 0, display->width() - 20, display->height(), 4, SSD1306_INVERSE);
-        display->display();
+        display->drawRect(20, 0, display->width() - 20, display->height());
     }
 }
 
