@@ -21,7 +21,7 @@ private:
     bool _show_rolls = false;
 public:
     explicit StandardUI();
-    void render(DisplaySSD1306_128x64_I2C *display) override;
+    void render(Display *display) override;
     void up(bool longPress) override;
     void down(bool longPress) override;
     void left(bool longPress) override;

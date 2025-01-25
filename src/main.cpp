@@ -1,237 +1,196 @@
 #include <Arduino.h>
-#include <Wire.h>
-#include "lcdgfx.h"
+
+#ifdef AVR
 #include <avr/sleep.h>
 #include <avr/power.h>
-#include "MainMenu.h"
-#include "StandardUI.h"
+#endif
+
+
+#include "main_menu.h"
+#include "standard_ui.h"
 #include "advanced_ui.h"
-#include "button.cpp"
-#include <MemoryUsage.h>
+#include "button.h"
+#include "display.h"
 
-#define SCREEN_WIDTH 128  // OLED display width, in pixels
-#define SCREEN_HEIGHT 64  // OLED display height, in pixels
-
-#define OLED_RESET -1  // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C
-
-#define gbi(by, bi) (by & (1 << bi))
-#define cbi(by, bi) (by &= ~(1 << bi))
-#define sbi(by, bi) (by |= (1 << bi))
-
-#define ROTARY_A 2
-#define ROTARY_B 3
-
+#ifdef AVR
 #define BUTTON_1 4
 #define BUTTON_UP 5
 #define BUTTON_DOWN 6
 #define BUTTON_2 7
 #define OLED_VCC 13
+#else
+#define BUTTON_1 12
+#define BUTTON_UP 13
+#define BUTTON_DOWN 14
+#define BUTTON_2 15
+#define OLED_VCC 27
+#endif
 
 #define SLEEP_TIME 20000
 
-DisplaySSD1306_128x64_I2C display(-1); // or (-1,{busId, addr, scl, sda, frequency})
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define OLED_RESET (-1) // Reset pin # (or -1 if sharing Arduino reset pin)
 
-UI_TYPE currScreen = MAIN_MENU;
-MainMenu mainMenu;
-StandardUI standardUI;
-AdvancedUI advancedUI;
+Adafruit_SSD1306 _display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Display display(&_display);
 
-Button leftButton(BUTTON_1);
-Button upButton(BUTTON_UP);
-Button downButton(BUTTON_DOWN);
-Button rightButton(BUTTON_2);
+UI *currentUI = nullptr;
+
+Button<4> button({BUTTON_1, BUTTON_UP, BUTTON_DOWN, BUTTON_2});
 
 volatile uint32_t lastInteractionTime = 0;
 
-void setupDisplay() {
-    delay(500);
-    display.begin();
-    display.fill(0x00);
-    display.setFixedFont(ssd1306xled_font6x8);
-    display.printFixed(0, 8, "Snake", STYLE_NORMAL);
-    lcd_delay(1000);
+void onButtonLeftPress(bool longPress) {
+    if (longPress) {
+        currentUI->left(true);
+        if (currentUI->type != MAIN_MENU) {
+            delete currentUI;
+            currentUI = new MainMenu();
+        }
+    } else {
+        currentUI->left(false);
+    }
 }
 
-void sleep() {
-    digitalWrite(OLED_VCC, LOW);
-    delay(500);
-    sleep_enable(); // Enable sleep mode
-    power_adc_disable(); // Disable ADC to save power
-    sei(); // Enable interrupts
-    sleep_mode(); // Go to sleep
-
-    // The program resumes here after wake up
-    sleep_disable(); // Disable sleep mode
-    power_adc_enable(); // Re-enable ADC
-    digitalWrite(OLED_VCC, HIGH);
-    setupDisplay();
+void onButtonUpPress(bool longPress) {
+    currentUI->up(longPress);
 }
 
-UI *currentUI() {
-    switch (currScreen) {
-        case MAIN_MENU:
-            return &mainMenu;
-        case STANDARD:
-            return &standardUI;
-        case ADVANCED:
-            return &advancedUI;
-        case HISTORY:
+void onButtonDownPress(bool longPress) {
+    currentUI->down(longPress);
+}
+
+void onButtonRightPress(bool longPress) {
+    currentUI->right(longPress);
+    if (!longPress && currentUI->type == MAIN_MENU) {
+        switch (currentUI->pos()) {
+            case 0:
+                delete currentUI;
+                currentUI = new StandardUI();
+                break;
+            case 1:
+                delete currentUI;
+                currentUI = new AdvancedUI();
+                break;
+            case 2:
+                delete currentUI;
+                currentUI = new MainMenu();
+                break;
+        }
+    }
+}
+
+void onButtonPress(uint8_t button, bool longPress) {
+    switch (button) {
+        case BUTTON_1:
+            onButtonLeftPress(longPress);
+            break;
+        case BUTTON_UP:
+            onButtonUpPress(longPress);
+            break;
+        case BUTTON_DOWN:
+            onButtonDownPress(longPress);
+            break;
+        case BUTTON_2:
+            onButtonRightPress(longPress);
             break;
     }
-    return nullptr;
 }
 
-void onButtonLeftPress() {
-    currentUI()->left(false);
-}
-
-void onButtonLeftLongPress() {
-    currentUI()->left(true);
-    if (currScreen != MAIN_MENU) {
-        currScreen = MAIN_MENU;
-    }
-}
-
-void onButtonUpPress() {
-    currentUI()->up(false);
-}
-
-void onButtonUpLongPress() {
-    currentUI()->up(true);
-}
-
-void onButtonDownPress() {
-    currentUI()->down(false);
-}
-
-void onButtonDownLongPress() {
-    currentUI()->down(true);
-}
-
-void onButtonRightPress() {
-    currentUI()->right(false);
-    if (currScreen == MAIN_MENU) {
-        if (currentUI()->pos() == 0) {
-            currScreen = STANDARD;
-        } else if (currentUI()->pos() == 1) {
-            currScreen = ADVANCED;
-        } else if (currentUI()->pos() == 2) {
-            currScreen = HISTORY;
-        }
-    }
-}
-
-void onButtonRightLongPress() {
-    currentUI()->right(true);
-}
-
-void onEncoderCW() {
-    currentUI()->right(false);
-}
-
-void onEncoderCCW() {
-    currentUI()->left(false);
-}
-
-void encoderISR() {
-    static const int8_t encStates[] PROGMEM = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
-    static volatile uint8_t lastAb = 3;
-    static volatile int8_t encVal = 0;
-    static volatile uint32_t lastInterruptTime = 0;
-
-    uint32_t interruptTime = millis();
-
-    lastAb <<= 2; // Remember previous state
-    uint8_t a = digitalRead(ROTARY_A);
-    uint8_t b = digitalRead(ROTARY_B);
-    lastAb |= (a << 1) | b; // Add current state
-    encVal += encStates[(lastAb & 0x0f)];
-    if (encVal > 3 || encVal < -3) {
-        int8_t changeValue = (encVal > 0) - (encVal < 0);
-        if (millis() - lastInterruptTime < 10) {
-            changeValue *= 10;
-        }
-        lastInterruptTime = millis();
-        //encoderPos += changeValue;
-        if (changeValue > 0) {
-            onEncoderCW();
-        } else {
-            onEncoderCCW();
-        }
-        encVal = 0;
-    }
-
-    lastInteractionTime = interruptTime;
-}
-
+#ifdef AVR
 ISR(PCINT2_vect) {
     // This ISR will be executed when pin D2 changes state
     // Note: The ISR is required to allow wake-up from sleep, but doesn't need to do anything.
     lastInteractionTime = millis();
+}
+#endif
+
+bool render() {
+    if (currentUI) {
+        currentUI->render(&display);
+    }
+    return true;
+}
+
+void setupDisplay() {
+    display.setup();
+}
+
+void _sleep() {
+    #ifdef AVR
+    digitalWrite(OLED_VCC, LOW);
+    delay(500);
+    sleep_enable();      // Enable sleep mode
+    power_adc_disable(); // Disable ADC to save power
+    sei();               // Enable interrupts
+    sleep_mode();        // Go to sleep
+
+    // The program resumes here after wake up
+    sleep_disable();    // Disable sleep mode
+    power_adc_enable(); // Re-enable ADC
+    digitalWrite(OLED_VCC, HIGH);
+    setupDisplay();
+    #endif
+}
+
+void setupInterrupts() {
+    #ifdef AVR
+    PCICR |= (1 << PCIE2); // Enable PCINT2 (covers D0 to D7, including D2)
+    PCMSK2 |= (1 << PCINT20);
+    PCMSK2 |= (1 << PCINT21);
+    PCMSK2 |= (1 << PCINT22);
+    PCMSK2 |= (1 << PCINT23);
+    #endif
 }
 
 void setup() {
     // put your setup code here, to run once:
     Serial.begin(9600);
 
-    MEMORY_PRINT_START
-    MEMORY_PRINT_HEAPSTART
-    MEMORY_PRINT_HEAPEND
-    MEMORY_PRINT_STACKSTART
-    MEMORY_PRINT_END
-    MEMORY_PRINT_HEAPSIZE
-    FREERAM_PRINT
+    Serial.println("Starting...");
 
     pinMode(OLED_VCC, OUTPUT);
     digitalWrite(OLED_VCC, HIGH);
 
     setupDisplay();
 
-    PCICR |= (1 << PCIE2);  // Enable PCINT2 (covers D0 to D7, including D2)
+    button.onPress(onButtonPress);
+    button.begin();
 
-    PCMSK2 |= (1 << PCINT20);
-    leftButton.onPress(onButtonLeftPress);
-    leftButton.onLongPress(onButtonLeftLongPress);
-    leftButton.begin();
+    setupInterrupts();
+    currentUI = new MainMenu();
+    Serial.println("Started");
+}
 
-    PCMSK2 |= (1 << PCINT21);
-    upButton.onPress(onButtonUpPress);
-    upButton.onLongPress(onButtonUpLongPress);
-    upButton.begin();
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
 
-    PCMSK2 |= (1 << PCINT22);
-    downButton.onPress(onButtonDownPress);
-    downButton.onLongPress(onButtonDownLongPress);
-    downButton.begin();
-
-    PCMSK2 |= (1 << PCINT23);
-    rightButton.onPress(onButtonRightPress);
-    rightButton.onLongPress(onButtonRightLongPress);
-    rightButton.begin();
-
-
-    pinMode(ROTARY_A, INPUT_PULLUP);
-    pinMode(ROTARY_B, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(ROTARY_A), encoderISR, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(ROTARY_B), encoderISR, CHANGE);
-
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+int freeMemory() {
+  char top;
+#ifdef ESP32
+    return esp_get_free_heap_size();
+#elif defined(__arm__)
+  return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+  return &top - __brkval;
+#else  // __arm__
+  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
 }
 
 void loop() {
-
-    if (currentUI()) {
-        currentUI()->render(&display);
-    }
-
-    leftButton.read();
-    upButton.read();
-    downButton.read();
-    rightButton.read();
-
+    // put your main code here, to run repeatedly:
+    render();
+    button.read();
     if (lastInteractionTime + SLEEP_TIME < millis()) {
-        sleep();
+        //_sleep();
     }
-    FREERAM_PRINT;
+
+    Serial.print("Free memory: ");
+    Serial.println(freeMemory()); 
 }

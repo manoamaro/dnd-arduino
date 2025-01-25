@@ -7,8 +7,12 @@
 
 #include "expression_tree.h"
 #include "op_result.h"
-#include "op2.h"
+#include "op.h"
+#include "const_op.h"
+#include "math_op.h"
+#include "roll_op.h"
 #include "UI.h"
+#include <memory>
 
 enum UiState
 {
@@ -34,18 +38,19 @@ class AdvancedUI : public UI
 private:
     uint8_t state = UI_CONST_DICE_STATE;
     uint8_t uiOpType = UI_OP_CONST;
-    ExpressionTree expressionTree;
-    op::Op2 *currOp = nullptr;
+    ExpressionTree *expressionTree;
     OpResult result;
+    std::shared_ptr<ConstOp> constOp;
+    std::shared_ptr<RollOp> rollOp;
+    std::shared_ptr<MathOp> mathOp;
 
-    void printOp(op::Op2 *op, DisplaySSD1306_128x64_I2C *display, uint8_t depth);
-    void printDetails(OpResultDetail *detail, DisplaySSD1306_128x64_I2C *display);
+    void printOp(Op *op, Display *display, uint8_t depth);
 
 public:
     explicit AdvancedUI();
     ~AdvancedUI() override;
 
-    void render(DisplaySSD1306_128x64_I2C *display) override;
+    void render(Display *display) override;
     void up(bool longPress) override;
     void down(bool longPress) override;
     void left(bool longPress) override;

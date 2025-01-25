@@ -1,7 +1,7 @@
 #ifndef DND_IMAGES_H
 #define DND_IMAGES_H
 
-#include <avr/pgmspace.h>
+#include <Arduino.h>
 
 #define IMAGE_HEIGHT 32
 #define IMAGE_WIDTH 32

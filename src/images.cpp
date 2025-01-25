@@ -3,7 +3,6 @@
 //
 
 #include "images.h"
-#include <avr/pgmspace.h>
 
 // 'd4', 32x32px
 const unsigned char image_d4 [] PROGMEM = {

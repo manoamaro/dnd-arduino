@@ -16,12 +16,9 @@ class Op
 {
 public:
     uint8_t type;
-
     explicit Op(uint8_t type);
-
-    virtual void apply(OpResult *result) = 0;
-
     virtual ~Op();
+    virtual void apply(OpResult *result) = 0;
 };
 
 #endif // TEST_OP_H

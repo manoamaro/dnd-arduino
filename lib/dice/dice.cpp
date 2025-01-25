@@ -3,7 +3,6 @@
 //
 
 #include "dice.h"
-#include <stdlib.h>
 
 namespace Dice {
     // 0: 4, 1: 6, 2: 8, 3: 10, 4: 12, 5: 20, 6: 100
@@ -18,15 +17,3 @@ namespace Dice {
         return _constrain(r, minimum, sides);
     }
 } // namespace Dice
-
-size_t utils::print(DisplaySSD1306_128x64_I2C *display, const __FlashStringHelper *ifsh) {
-    PGM_P p = reinterpret_cast<PGM_P>(ifsh);
-    size_t n = 0;
-    while (1) {
-        unsigned char c = pgm_read_byte(p++);
-        if (c == 0) break;
-        if (display->write(c)) n++;
-        else break;
-    }
-    return n;
-}

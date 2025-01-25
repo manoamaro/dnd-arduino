@@ -12,7 +12,8 @@ private:
     uint8_t _curr = 0;
 public:
     explicit MainMenu();
-    void render(DisplaySSD1306_128x64_I2C *display) override;
+    ~MainMenu() override;
+    void render(Display *display) override;
     void up(bool longPress) override;
     void down(bool longPress) override;
     void left(bool longPress) override;

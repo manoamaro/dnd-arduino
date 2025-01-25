@@ -3,15 +3,15 @@
 
 #include "op.h"
 
-class ConstOp : public Op {
+class ConstOp : public Op
+{
+private:
+
 public:
     uint8_t value;
-
     explicit ConstOp(uint8_t value);
-
-    void apply(OpResult* result) override;
-
     ~ConstOp() override;
+    void apply(OpResult *result) override;
 };
 
-#endif //CONST_OP_H
+#endif // CONST_OP_H

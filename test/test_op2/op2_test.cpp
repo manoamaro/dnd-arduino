@@ -1,11 +1,10 @@
 #include <unity.h>
 #include <stdio.h>
-#include <cstdio>
 #include "dice.cpp"
 #include "op_result.cpp"
 #include "op2.cpp"
 
-void printDetails(OpResultDetail *details)
+void printDetails2(OpResultDetail *details)
 {
     for (int i = 0; i < 10; i++)
     {
@@ -13,34 +12,34 @@ void printDetails(OpResultDetail *details)
         switch (detail.getOpType())
         {
         case OP_RESULT_DETAIL_TYPE_CONST:
-            std::printf("%d", detail.getValue());
+            //std::printf("%d", detail.getValue());
             break;
         case OP_RESULT_DETAIL_TYPE_MATH_PLUS:
-            std::printf("+");
+            //std::printf("+");
             break;
         case OP_RESULT_DETAIL_TYPE_MATH_MINUS:
-            std::printf("-");
+            //std::printf("-");
             break;
         case OP_RESULT_DETAIL_TYPE_ROLL:
-            std::printf("(%d)", detail.getValue());
+            //std::printf("(%d)", detail.getValue());
             break;
         case OP_RESULT_DETAIL_TYPE_ROLL_CRITICAL_SUCCESS:
-            std::printf("**%d**", detail.getValue());
+            //std::printf("**%d**", detail.getValue());
             break;
         case OP_RESULT_DETAIL_TYPE_ROLL_CRITICAL_FAILURE:
-            std::printf("--%d--", detail.getValue());
+            //std::printf("--%d--", detail.getValue());
             break;
         case OP_RESULT_DETAIL_TYPE_ROLL_DROP:
-            std::printf("~%d~", detail.getValue());
+            //std::printf("~%d~", detail.getValue());
             break;
         default:
             break;
         }
     }
-    std::printf("\n");
+    //std::printf("\n");
 }
 
-void test_const_op(void)
+void test_const_op2(void)
 {
     op::Op2* constOp = op::Op2_new_const(1);
 
@@ -58,7 +57,7 @@ void test_const_op(void)
     delete result;
 }
 
-void test_roll_op(void)
+void test_roll_op2(void)
 {
     auto rollOp = op::Op2_new_roll(1);
     rollOp->roll.amount = 5;
@@ -69,7 +68,7 @@ void test_roll_op(void)
 
     op::Op2_apply(rollOp, result);
 
-    printDetails(result->getDetails());
+    printDetails2(result->getDetails());
 
     TEST_ASSERT_EQUAL(50, result->getResult());
 
@@ -97,7 +96,7 @@ void test_roll_op(void)
     delete result;
 }
 
-void test_math_op(void)
+void test_math_op2(void)
 {
     // 1 + 2 + 3 - 4 = 2
     auto leftMath = op::Op2_new_math(MATH_EXP_PLUS);
@@ -117,12 +116,12 @@ void test_math_op(void)
 
     op::Op2_apply(mathOp, result);
 
-    printDetails(result->getDetails());
+    printDetails2(result->getDetails());
 
     TEST_ASSERT_EQUAL(2, result->getResult());
 }
 
-void test_math_roll_op(void)
+void test_math_roll_op2(void)
 {
     // 2d20min2ro5 + 2 + 3 + 1d4
 
@@ -148,7 +147,7 @@ void test_math_roll_op(void)
 
     op::Op2_apply(mathOp, result);
 
-    printDetails(result->getDetails());
+    printDetails2(result->getDetails());
 
     TEST_ASSERT_EQUAL(29, result->getResult());
 }
@@ -166,9 +165,9 @@ void tearDown(void)
 int main(int argc, char **argv)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_const_op);
-    RUN_TEST(test_roll_op);
-    RUN_TEST(test_math_op);
-    RUN_TEST(test_math_roll_op);
+    RUN_TEST(test_const_op2);
+    RUN_TEST(test_roll_op2);
+    RUN_TEST(test_math_op2);
+    RUN_TEST(test_math_roll_op2);
     return UNITY_END();
 }

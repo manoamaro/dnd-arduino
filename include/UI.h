@@ -5,7 +5,7 @@
 #ifndef DND_UI_H
 #define DND_UI_H
 
-#include "lcdgfx.h"
+#include "display.h"
 #include <inttypes.h>
 
 
@@ -22,7 +22,7 @@ public:
 
     explicit UI(UI_TYPE type);
 
-    virtual void render(DisplaySSD1306_128x64_I2C *display) = 0;
+    virtual void render(Display *display) = 0;
     virtual void up(bool longPress) = 0;
     virtual void down(bool longPress) = 0;
     virtual void left(bool longPress) = 0;

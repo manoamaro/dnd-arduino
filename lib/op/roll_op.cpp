@@ -11,14 +11,10 @@ void RollOp::apply(OpResult* result) {
 
     for (int i = 0; i < this->amount; i++) {
         results[i] = roll(minimum, sides(), seed + i);
-        result->appendDetail(OP_RESULT_DETAIL_TYPE_ROLL, results[i]);
-
         if (reRollLowerThan > 0) {
             if (results[i] <= reRollLowerThan) {
-                result->setDetail(_max(0, result->getDetailsIndex() - 1), OP_RESULT_DETAIL_TYPE_ROLL_DROP, results[i]);
                 // Roll again
                 results[i] = roll(minimum, sides(), seed + i + 100);
-                result->appendDetail(OP_RESULT_DETAIL_TYPE_ROLL, results[i]);
             }
         }
         sum += results[i];
@@ -41,7 +37,7 @@ void RollOp::apply(OpResult* result) {
         }
     }
     delete[] results;
-    result->setResult(sum);
+    result->result = sum;
 }
 
 void RollOp::incSides() {
